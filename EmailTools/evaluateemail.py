@@ -8,6 +8,7 @@ v1.0 - coneypylon
 
 import os
 import sqlite3
+import re
 
 def findcombs(string):
     '''Iterates through a string and returns a list of the combinations with the counts
@@ -33,14 +34,25 @@ def clean(email):
     '''returns the last reply in an email (first block of text).
     Doesn't do this yet.
 
-    :param email: A string
+    :param email: A path to an email
     
-    :returns: a string with on ly the body.
+    :returns: a string with only the body.
     
     >>>clean('lorem ipsum
               >> lorem')
     'lorem ipsum'
     '''
+    start = False
+    out = []
+    with open(email,"r") as f:
+        s = f.readline()
+        while s != '':
+            if start:
+                out.append(s)
+                s = f.readline()
+            elif "X-FileName" in s:
+                start = True
+                s = f.readline()s
     return email
 
 if not os.path.exists("..\\DB\\emails.db"):
@@ -64,8 +76,11 @@ except:
     maxEID = 1
 
 for email in emaildirc:
-    with open(emails + email,"r") as f:
-        cleanmail = clean(f.read())
-    t = findcombs(cleanmail)
-    # time to insert it into the DB!
+    cleanmail = clean(emails + email)
+    if not "address" in cleanmail:    
+        t = findcombs(cleanmail)
+        # time to insert it into the DB!
+    else:
+        os.remove(emails + email)
+    
 	
