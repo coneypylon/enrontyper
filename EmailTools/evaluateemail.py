@@ -52,10 +52,11 @@ def clean(email):
             elif "X-FileName" in s:
                 start = True
                 s = f.readline()
+            elif not start:
+                s = f.readline()
             else:
                 break
-    return email
-
+    return out
 if not os.path.exists("..\\DB\\emails.db"):
     conn = sqlite3.connect('..\\DB\\emails.db')
     c = conn.cursor()
@@ -80,18 +81,24 @@ toexec = []
     
 for email in emaildirc:
     cleanmail = clean(emails + email)
-    if not "address" in cleanmail and len(cleanmail) > 1:    
-        t = str(findcombs(cleanmail))
+    if not "address" in cleanmail and not "account" in cleanmail and len(cleanmail) > 1:    
+        #t = str(findcombs(cleanmail))
         # time to insert it into the DB!
-        toexec.append('INSERT INTO EMAILS (EID,BODY) VALUES (%s, "%s")' % (maxEID,cleanmail))
+        t = [maxEID,cleanmail]
+        toexec.append(t)
         maxEID += 1
         os.remove(emails + email)
     else:
         os.remove(emails + email)
     
-print(toexec)
+#print(toexec)
     
 for command in toexec:
-    c.execute(command)
+    print(command)
+    try:
+        t = [command[0],command[1]]
+        c.execute('INSERT INTO EMAILS VALUES (?, NULL, ?, NULL, NULL)', t)
+    except DivideByZeroError:
+        continue
     
 conn.commit()
