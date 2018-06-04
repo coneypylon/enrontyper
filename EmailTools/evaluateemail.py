@@ -1,6 +1,8 @@
 '''Evaluates the emails in Emails, adding them to emails.db if need be.
 Creates emails.db if need be.
 
+OK.
+
 Make sure the emails in Emails are flattened using transferemails
 
 v1.0 - coneypylon
@@ -12,9 +14,9 @@ import re
 
 def findcombs(string):
     '''Iterates through a string and returns a list of the combinations with the counts
-    
+
     :param string: a string
-    
+
     :returns: a dict of strings
 
     >> findcombs("abcdef")
@@ -31,12 +33,13 @@ def findcombs(string):
     return retdict
 
 def clean(email):
-    '''returns the last reply in an email (first block of text).
+    '''returns a tuple of the last reply in an email (first block of text) and
+    the user.
 
     :param email: A path to an email
-    
+
     :returns: a string with only the body.
-    
+
     >>>clean('lorem ipsum
               >> lorem')
     'lorem ipsum'
@@ -78,10 +81,10 @@ except:
     maxEID = 1
 
 toexec = []
-    
+
 for email in emaildirc:
     cleanmail = clean(emails + email)
-    if not "address" in cleanmail and not "account" in cleanmail and len(cleanmail) > 1:    
+    if not "address" in cleanmail and not "account" in cleanmail and len(cleanmail) > 1:
         #t = str(findcombs(cleanmail))
         # time to insert it into the DB!
         t = [maxEID,cleanmail]
@@ -90,9 +93,9 @@ for email in emaildirc:
         os.remove(emails + email)
     else:
         os.remove(emails + email)
-    
+
 #print(toexec)
-    
+
 for command in toexec:
     print(command)
     try:
@@ -100,5 +103,5 @@ for command in toexec:
         c.execute('INSERT INTO EMAILS VALUES (?, NULL, ?, NULL, NULL)', t)
     except DivideByZeroError:
         continue
-    
+
 conn.commit()
