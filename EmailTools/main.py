@@ -102,13 +102,13 @@ def login(namey,db="../DB/emails.db"):
         try:
             c.execute("SELECT MAX(UID) FROM PLAYERS")
             t = int(c.fetchone()[0]) + 1
-            c.execute("INSERT INTO PLAYERS VALUES (?,?, NULL, 999);", (t, namey))
+            c.execute("INSERT INTO PLAYERS VALUES (?,?, NULL, 30);", (t, namey))
             conn.commit()
             conn.close()
             return t
         except TypeError: # nobody in DB
             t = 1
-            c.execute('INSERT INTO PLAYERS VALUES (?,?, NULL, 999);', (t, namey))
+            c.execute('INSERT INTO PLAYERS VALUES (?,?, NULL, 30);', (t, namey))
             conn.commit()
             conn.close()
             return t
