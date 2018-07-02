@@ -62,7 +62,7 @@ def login(namey,db="../DB/emails.db"):
         conn = sqlite3.connect(db)
         c = conn.cursor()
         c.execute("CREATE TABLE EMAILS (EID INT, USER TEXT, BODY LONGTEXT, DIFFICULTY REAL, COMBS LONGTEXT)")
-        c.execute("CREATE TABLE PLAYERS (UID INT, USERNAME TINYTEXT, COMBSCORES LONGTEXT)")
+        c.execute("CREATE TABLE PLAYERS (UID INT, USERNAME TINYTEXT, COMBSCORES LONGTEXT, MAXLEN INT)")
         c.execute("CREATE TABLE COMBS (COMB TINYTEXT, TYPED BIGINT, TYPEDCORRECT BIGINT, DIFFICULTY FLOAT, BESTEMAILS LONGTEXT)")
         conn.commit()
     else:
@@ -77,16 +77,36 @@ def login(namey,db="../DB/emails.db"):
         try:
             c.execute("SELECT MAX(UID) FROM PLAYERS")
             t = int(c.fetchone()[0]) + 1
-            c.execute("INSERT INTO PLAYERS VALUES (?,?, NULL);", (t, namey))
+            c.execute("INSERT INTO PLAYERS VALUES (?,?, NULL, 999);", (t, namey))
             conn.commit()
             conn.close()
             return t
         except TypeError: # nobody in DB
             t = 1
-            c.execute('INSERT INTO PLAYERS VALUES (?,?, NULL);', (t, namey))
+            c.execute('INSERT INTO PLAYERS VALUES (?,?, NULL, 999);', (t, namey))
             conn.commit()
             conn.close()
             return t
+
+def getfromdb(statement,db="../DB/emails.db"):
+    '''Executes statement on db. Should fix this if this ever is hosted online.
+
+    :param statement: An SQL statement. This doesn't commit, so probably
+    a select statement.
+    :param db: The sqlite database
+
+    :returns: The result of the query.
+    '''
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+
+    c.execute(statement)
+
+    t = c.fetchall()
+
+    conn.close()
+
+    return t
 
 def getrandemail(db="../DB/emails.db"):
     '''Gets a random email from the database and returns a tuple of
@@ -147,6 +167,9 @@ def main(db="../DB/emails.db"):
             # test random email.
             curemail = getrandemail(db)
             lines = len(curemail[1].split("\n"))
+            while lines > int(getfromdb("SELECT MAXLEN FROM PLAYERS WHERE UID=%s" % uid, db)[0][0]):
+                curemail = getrandemail(db)
+                lines = len(curemail[1].split("\n"))
             totaltime = 0
             totalmistakes = 0
             totalchars = 0
