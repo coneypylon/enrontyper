@@ -32,7 +32,7 @@ def test(string,EID,COMBS,FIRSTLINE=False,line=-1):
     incorrect combinations, and the time in seconds for the string.
     '''
     if FIRSTLINE:
-        print("Type the following. Press Enter at the end of each line.\n")
+        print("EID:%s\nType the following. Press Enter at the end of each line.\n" % EID)
     if line >= 0:
         print("%s lines remain" % line)
 
