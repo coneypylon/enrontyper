@@ -68,7 +68,7 @@ def linescore(string,attempt,COMBS):
             incorrect += 1
             if char - 1 >= 0:
                 inccombs.append(COMBS[char - 1])
-            if char <= len(COMBS):
+            if char <= len(COMBS) -1:
                 inccombs.append(COMBS[char])
     return (incorrect,inccombs)
 
@@ -256,7 +256,7 @@ def main(db="../DB/emails.db"):
                 totalchars += len(lines[line])
                 badcombs.extend(t[0][1])
             t = score(totaltime,totalmistakes,totalchars)
-            print("Your weighted CPM was %s, and your raw CPM was %s!" % (t,totalchars/totaltime)) # say more about thsi
+            print("Your weighted CPM was %s, and your raw CPM was %s!" % (t,totalchars/totaltime*60)) # say more about thsi
             print("You typed %s WPM!" % ((linestup[1]/totaltime)*60))
             print("Your mistaken character combinations were %s" % badcombs)
 
