@@ -15,16 +15,21 @@ def clearscreen():
     except:
         os.system('clr')
 
-def test(string,FIRSTLINE=False,line=-1):
+def test(string,EID,COMBS,FIRSTLINE=False,line=-1):
     '''displays the string, and waits for input. If the input is shorter than
     the string, keeps receiving input.
 
     In the future, it might be changed to take a character at a time
 
     :param str: The string to be tested against
+    :param FIRSTLINE: A boolean switch indicating whether this is the first
+    line of the email.
+    :param line: The number of lines remaining.
+    :param EID: The Email ID
+    :param COMBS: The two letter combinations in this line.
 
-    :returns: A tuple of the number of nonmatching characters and the
-    time in seconds for the string.
+    :returns: A tuple of a tuple of the number of nonmatching characters and
+    incorrect combinations, and the time in seconds for the string.
     '''
     if FIRSTLINE:
         print("Type the following. Press Enter at the end of each line.\n")
@@ -41,11 +46,31 @@ def test(string,FIRSTLINE=False,line=-1):
     end = time.time()
     incorrect = 0
     # check the results
-    for character in range(0,len(string)):
-        if test[character] != string[character]:
-            incorrect += 1
-    return (incorrect,end - start)
+    t = linescore(string,test,COMBS)
+    return (t,end - start)
 
+def linescore(string,attempt,COMBS):
+    '''Consumes a string, the player's attempt at the string, and a list of
+    the combinations of letters in the string. Returns a tuple of the number of
+    inccorect characters and a list of the combinations that were incorrect.
+
+    :param string: The correct string
+    :param attempt: The player's attempt at the string.
+    :param COMBS: A list of the combinations of letters in string.
+
+    :returns: (# of incorrect characters,list of incorrect combinations)
+    '''
+    incorrect = 0
+    inccombs = []
+    for char in range(0,len(string)):
+        #double minus 1 and double
+        if attempt[char] != string[char]:
+            incorrect += 1
+            if char - 1 >= 0:
+                inccombs.append(COMBS[char - 1])
+            if char <= len(COMBS):
+                inccombs.append(COMBS[char])
+    return (incorrect,inccombs)
 
 def login(namey,db="../DB/emails.db"):
     '''Logs in. For right now, it matches the namey in the database, and
@@ -149,6 +174,55 @@ def score(ttime,tmistakes,tchars):
     acpm = cpm - tmistakes/tchars
     return acpm
 
+def findcombs(LINES):
+    '''combs through a list of strings, returns a list of the same length of
+    the two letter combinations in those strings.
+
+    :param LINES: A list of strings
+
+    :returns: A list of lists of two letter combinations for that
+    same list of strings.
+
+    >>> findcombs(["abc,defg"])
+    [["ab","bc"],["de","ef","fg"]]
+    '''
+    outlst = []
+    for line in range(0,len(LINES)):
+        outlst.append([])
+        for char in range(0,len(LINES[line])):
+            if char != len(LINES[line]) -1 : # it's not the last character
+                outlst[line].append(LINES[line][char:char + 2])
+    return outlst
+
+def preplines(MAXL,TYP,db="../DB/emails.db"):
+    '''Consumes a maximum number of lines, and a string indicating the type
+    of lines to give (random or tailored.)
+
+    :param MAXL: An integer, giving the max number of lines
+    :param TYP: A string, either "random" or "tailored"
+
+    :returns: A tuple of a list of lines, the number of words in the lines,
+    the EID, and a list of the combinations of letters present in the lines.
+    '''
+    if TYP == "random":
+        curemail = getrandemail(db)
+        lines = curemail[1].split("\n")
+
+        while len(lines) > MAXL:
+            curemail = getrandemail(db)
+            lines = curemail[1].split("\n")
+    else:
+        raise NotImplementedError
+    WORDCOUNT = len(curemail[1].split(' '))
+    outlines = []
+    for line in lines:
+        tline = line.strip()
+        if len(tline) > 1:
+            outlines.append(tline)
+    combs = findcombs(outlines)
+    return (outlines,WORDCOUNT,curemail[0],combs)
+
+
 def main(db="../DB/emails.db"):
     '''The main runtime. Runs the program when called, starts with a login,
     followed by actually doing stuff.
@@ -159,32 +233,32 @@ def main(db="../DB/emails.db"):
     print("Welcome to enrontyper!")
     namey = input("Please enter your name: ")
     uid = login(namey,db) # the logging in.
+    MAXLEN = int(getfromdb("SELECT MAXLEN FROM PLAYERS WHERE UID=%s" % uid, db)[0][0])
     print("Welcome, User %s" % uid)
     RUNNING = True
     while RUNNING:
         curmode = input("Which mode to play? (Random,Tailored): ")
         if curmode.lower() == "random":
             # test random email.
-            curemail = getrandemail(db)
-            lines = len(curemail[1].split("\n"))
-            while lines > int(getfromdb("SELECT MAXLEN FROM PLAYERS WHERE UID=%s" % uid, db)[0][0]):
-                curemail = getrandemail(db)
-                lines = len(curemail[1].split("\n"))
+            linestup = preplines(MAXLEN,"random",db)
+            lines = linestup[0]
+            totallines = len(lines)
             totaltime = 0
             totalmistakes = 0
             totalchars = 0
+            badcombs = []
             first = True
-            for line in curemail[1].split("\n"):
-                if not line == "":
-                    line = line.strip()
-                    t = test(line,first,lines)
-                    first = False
-                    totaltime += t[1]
-                    totalmistakes += t[0]
-                    totalchars += len(line)
-                    lines -= 1
+            for line in range(0,len(lines)):
+                t = test(lines[line],linestup[2],linestup[3][line],first,len(lines) - line)
+                first = False
+                totaltime += t[1]
+                totalmistakes += t[0][0]
+                totalchars += len(lines[line])
+                badcombs.extend(t[0][1])
             t = score(totaltime,totalmistakes,totalchars)
-            print("Your score was %s!" % t) # say more about thsi
+            print("Your weighted CPM was %s, and your raw CPM was %s!" % (t,totalchars/totaltime)) # say more about thsi
+            print("You typed %s WPM!" % ((linestup[1]/totaltime)*60))
+            print("Your mistaken character combinations were %s" % badcombs)
 
         else:
             RUNNING = False
