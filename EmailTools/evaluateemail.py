@@ -60,18 +60,18 @@ def clean(email):
             else:
                 break
     return out
-if not os.path.exists("..\\DB\\emails.db"):
-    conn = sqlite3.connect('..\\DB\\emails.db')
+if not os.path.exists("../DB/emails.db"):
+    conn = sqlite3.connect('../DB/emails.db')
     c = conn.cursor()
     c.execute("CREATE TABLE EMAILS (EID INT, USER TINYTEXT, BODY LONGTEXT, DIFFICULTY FLOAT, COMBS LONGTEXT)")
     c.execute("CREATE TABLE PLAYERS (UID INT, USERNAME TINYTEXT, COMBSCORES LONGTEXT)")
     c.execute("CREATE TABLE COMBS (COMB TINYTEXT, TYPED BIGINT, TYPEDCORRECT BIGINT, DIFFICULTY FLOAT, BESTEMAILS LONGTEXT)")
     conn.commit()
 else:
-    conn = sqlite3.connect('..\\DB\\emails.db')
+    conn = sqlite3.connect('../DB/emails.db')
     c = conn.cursor()
 
-emails = "..\\Emails\\"
+emails = "../Emails/"
 emaildirc = os.listdir(emails)
 
 try:

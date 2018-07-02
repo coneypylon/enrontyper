@@ -7,6 +7,7 @@ It takes no input, and displays to the console.
 import os
 import time
 import sqlite3
+import random
 
 def clearscreen():
     try:
@@ -36,7 +37,7 @@ def test(str,FIRSTLINE=False):
         test += input()
     end = time.time()
 
-def login(namey):
+def login(namey,db="../DB/emails.db"):
     '''Logs in. For right now, it matches the namey in the database, and
     returns the UID for the user.
 
@@ -47,19 +48,20 @@ def login(namey):
     >>> login("Bob")
     23
     '''
-    if not os.path.exists("..\\DB\\emails.db"):
-        conn = sqlite3.connect('..\\DB\\emails.db')
+    if not os.path.exists(db):
+        conn = sqlite3.connect(db)
         c = conn.cursor()
-        c.execute("CREATE TABLE EMAILS (EID INT, USER TINYTEXT, BODY LONGTEXT, DIFFICULTY FLOAT, COMBS LONGTEXT)")
+        c.execute("CREATE TABLE EMAILS (EID INT, USER TEXT, BODY LONGTEXT, DIFFICULTY REAL, COMBS LONGTEXT)")
         c.execute("CREATE TABLE PLAYERS (UID INT, USERNAME TINYTEXT, COMBSCORES LONGTEXT)")
         c.execute("CREATE TABLE COMBS (COMB TINYTEXT, TYPED BIGINT, TYPEDCORRECT BIGINT, DIFFICULTY FLOAT, BESTEMAILS LONGTEXT)")
         conn.commit()
     else:
-        conn = sqlite3.connect('..\\DB\\emails.db')
+        conn = sqlite3.connect(db)
         c = conn.cursor()
     try:
         c.execute('SELECT UID FROM PLAYERS WHERE USERNAME =?', (namey,))
         t = c.fetchone()[0]
+        conn.close()
         return int(t)
     except TypeError: # not in DB
         try:
@@ -67,16 +69,49 @@ def login(namey):
             t = int(c.fetchone()[0]) + 1
             c.execute("INSERT INTO PLAYERS VALUES (?,?, NULL);", (t, namey))
             conn.commit()
+            conn.close()
             return t
         except TypeError: # nobody in DB
             t = 1
             c.execute('INSERT INTO PLAYERS VALUES (?,?, NULL);', (t, namey))
             conn.commit()
+            conn.close()
             return t
 
+def getrandemail(db="../DB/emails.db"):
+    '''Gets a random email from the database and returns a tuple of
+    the EID and the body text of the email.
 
+    :param db: The sqlite3 database to connect to.
 
-def main():
+    :returns: A tuple of the EID and the body of the email.
+
+    >>> getrandemail()
+    (1234,"Hey Bob, nice meeting.")
+    '''
+    try:
+        conn = sqlite3.connect(db)
+        c = conn.cursor()
+
+        findMax = "SELECT * FROM EMAILS"
+        c.execute(findMax)
+
+        t = c.fetchone()
+        print(t)
+        maxEID = int(t)
+
+        EID = random.randint(1,maxEID)
+
+        c.execute('SELECT BODY FROM EMAILS WHERE EID=?;', (EID,))
+
+        body = c.fetchone()[0]
+
+        return (EID,body)
+    except Exception as e:
+        print(str(e))
+        sys.exit()
+
+def main(db="../DB/emails.db"):
     '''The main runtime. Runs the program when called, starts with a login,
     followed by actually doing stuff.
 
@@ -84,9 +119,19 @@ def main():
     '''
     clearscreen()
     print("Welcome to enrontyper!")
-    namey = input("Please enter your namey: ")
-    uid = login(namey) # the logging in.
+    namey = input("Please enter your name: ")
+    uid = login(namey,db) # the logging in.
     print("Welcome, User %s" % uid)
+    RUNNING = True
+    while RUNNING:
+        curmode = input("Which mode to play? (Random,Tailored): ")
+        if curmode.lower() == "random":
+            # test random email.
+            curemail = getrandemail(db)
+            print(curemail)
+
+        else:
+            raise NotImplementedError
 
 if __name__ == "__main__":
     main()
