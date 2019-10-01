@@ -15,9 +15,9 @@ def flatreturn(directory):
 	filelst = os.listdir(directory)
 	
 	for file in filelst:
-		if os.path.isdir(directory + "\\" + file):
-			flatreturn(directory + "\\" + file)
+		if os.path.isdir(directory + "/" + file):
+			flatreturn(directory + "/" + file)
 		else:
-			shutil.copy(directory + "\\" + file,"..\\Emails")
+			shutil.copy(directory + "/" + file,"../Emails")
 	
-flatreturn("..\\TRANSFER")
+flatreturn("../TRANSFER")
