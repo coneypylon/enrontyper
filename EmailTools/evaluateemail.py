@@ -84,7 +84,11 @@ toexec = []
 
 for email in emaildirc:
     cleanmail = clean(emails + email)
-    if not "address" in cleanmail and not "account" in cleanmail and len(cleanmail) > 1:
+    # this is new - we're going to print every single email out as we go to check if it violates privacy
+    # Since this is going to be a web app at some point, we want to ensure that we are not violating privacy
+    print(cleanmail)
+    response = input("Keep email? [Y/N] ")
+    if not "address" in cleanmail and not "account" in cleanmail and len(cleanmail) > 1 and response[0].upper() = "Y":
         #t = str(findcombs(cleanmail))
         # time to insert it into the DB!
         t = [maxEID,cleanmail]
@@ -96,6 +100,7 @@ for email in emaildirc:
 
 #print(toexec)
 
+#this is the sloppy way we add it to DynamoDB eventually, but sqlite for now.
 for command in toexec:
     print(command)
     try:
