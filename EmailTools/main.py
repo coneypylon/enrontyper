@@ -8,6 +8,7 @@ import os
 import time
 import sqlite3
 import random
+import evaluateemail
 
 def clearscreen():
     try:
@@ -113,24 +114,10 @@ def login(namey,db="../DB/emails.db"):
             conn.close()
             return t
 
-def getfromdb(statement,db="../DB/emails.db"):
-    '''Executes statement on db. Should fix this if this ever is hosted online.
-
-    :param statement: An SQL statement. This doesn't commit, so probably
-    a select statement.
-    :param db: The sqlite database
-
-    :returns: The result of the query.
+def getfromdb(word):
+    '''gets something from dynamoDB
     '''
-    conn = sqlite3.connect(db)
-    c = conn.cursor()
-
-    c.execute(statement)
-
-    t = c.fetchall()
-
-    conn.close()
-
+    t = evaluateemail.fetch(word)
     return t
 
 def getrandemail(db="../DB/emails.db"):
@@ -194,25 +181,23 @@ def findcombs(LINES):
                 outlst[line].append(LINES[line][char:char + 2])
     return outlst
 
-def preplines(MAXL,TYP,db="../DB/emails.db"):
+def preplines(MAXL,TYP):
     '''Consumes a maximum number of lines, and a string indicating the type
     of lines to give (random or tailored.)
 
-    :param MAXL: An integer, giving the max number of lines
-    :param TYP: A string, either "random" or "tailored"
+    :param MAXL: An integer, giving the max number of lines.
+    :param TYP: The word that we want as the most common word.
 
     :returns: A tuple of a list of lines, the number of words in the lines,
     the EID, and a list of the combinations of letters present in the lines.
     '''
-    if TYP == "random":
+    curemail = getfromdb(TYP)
+    lines = curemail[1].split("\n")
+
+    while len(lines) > MAXL:
         curemail = getrandemail(db)
         lines = curemail[1].split("\n")
 
-        while len(lines) > MAXL:
-            curemail = getrandemail(db)
-            lines = curemail[1].split("\n")
-    else:
-        raise NotImplementedError
     WORDCOUNT = len(curemail[1].split(' '))
     outlines = []
     for line in lines:
@@ -240,7 +225,7 @@ def main(db="../DB/emails.db"):
         curmode = input("Which mode to play? (Random,Tailored): ")
         if curmode.lower() == "random":
             # test random email.
-            linestup = preplines(MAXLEN,"random",db)
+            linestup = preplines(MAXLEN,"_random")
             lines = linestup[0]
             totallines = len(lines)
             totaltime = 0

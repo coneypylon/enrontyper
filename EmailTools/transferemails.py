@@ -18,6 +18,6 @@ def flatreturn(directory):
 		if os.path.isdir(directory + "/" + file):
 			flatreturn(directory + "/" + file)
 		else:
-			shutil.copy(directory + "/" + file,"../Emails")
+			shutil.copy(directory + "/" + file,"../Emails/%s-%s" % (directory[-3:],file))
 	
 flatreturn("../TRANSFER")
