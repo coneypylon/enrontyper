@@ -11,13 +11,12 @@ v1.1 - coneypylon
 '''
 
 import os
-import sqlite3
 import re
 import json
 import boto3
 import decimal
 import random
-
+from boto3.dynamodb.conditions import Key, Attr
 
 ### # # ###
 # # # # ##
@@ -63,7 +62,7 @@ def put_stuff_in_DB(stuff):
     
     #region = input("What region is the DynamoDB in? ")
     #endpoint = input("What is the endpoint-url? ")
-    table = input("What is the name of the table? ")
+    table = 'enron1'
     
     dynamodb = boto3.resource('dynamodb')
 
@@ -71,7 +70,8 @@ def put_stuff_in_DB(stuff):
 
     mcw = stuff['mcw'] #gonna change this to actually make sense. stuff will be iterated through
     EID = str(stuff['EID']) #here's the problem - this function should be the one to find the EID, not
-    #                # whatever is calling this function.
+    #                # whatever is calling this function. Since DynamoDB is now used for EID, I may change
+    #                   this finally.
     response = table.put_item(
        Item={
             'most_common_word': mcw,
@@ -128,16 +128,19 @@ def fetch(word):
     I may make it look for that word again, but it is possible
     that there are words that occur in only one email.'''
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(table)
+    table = dynamodb.Table('enron1')
+    rando = getrandEID() # this is gonna be a problem if the site gets a lot of use.
     if word != "_random":
         try:
             response = table.query(KeyConditionExpression=Key('most_common_word').eq(word))
             return json.dumps(response[0],cls=DecimalEncoder)
         except:
-            
-            response = table.query(KeyConditionExpression=Key('EID').eq(str(rando)))
+            response = table.query(IndexName='EID-index',KeyConditionExpression=Key('EID').eq(str(rando)))
             return json.dumps(response[0],cls=DecimalEncoder)
-        
+    else:
+        response = table.query(IndexName='EID-index',KeyConditionExpression=Key('EID').eq(str(rando)))
+        return json.dumps(response[0],cls=DecimalEncoder)
+
 
 def clean(email):
     '''returns a tuple of the last reply in an email (first block of text) and
@@ -146,12 +149,15 @@ def clean(email):
     :param email: A path to an email
 
     :returns: a string with only the body.
+    
+    Totally ruined by making start True. I cleaned the test batch personally.
 
     >>>clean('lorem ipsum
               >> lorem')
     'lorem ipsum'
     '''
-    start = False
+    start = True # Remember to put this back to False if the emails are not pre-
+    #                   cleaned.
     out = ''
     with open(email,"r") as f:
         s = f.readline()
@@ -169,43 +175,24 @@ def clean(email):
     return email
 
 def getmaxEID():
-    '''grabs the max EID from the DB. Obviously going to change once the DynamoDB switch is done.'''
-    if not os.path.exists("../DB/emails.db"):
-        conn = sqlite3.connect('../DB/emails.db')
-        c = conn.cursor()
-        c.execute("CREATE TABLE EMAILS (EID INT, USER TINYTEXT, BODY LONGTEXT, DIFFICULTY FLOAT, words LONGTEXT)")
-        c.execute("CREATE TABLE PLAYERS (UID INT, USERNAME TINYTEXT, wordsCORES LONGTEXT)")
-        c.execute("CREATE TABLE words (COMB TINYTEXT, TYPED BIGINT, TYPEDCORRECT BIGINT, DIFFICULTY FLOAT, BESTEMAILS LONGTEXT)")
-        conn.commit()
-    else:
-        conn = sqlite3.connect('../DB/emails.db')
-        c = conn.cursor()
-    c.execute("SELECT MAX(EID) FROM EMAILS")
-    return c.fetchone()
+    dynamodb = boto3.resource('dynamodb')
 
+    table = dynamodb.Table('enron1')
+    return table.item_count # this works since EID is determined by the count of the
+    # emails. Won't work if I ever remove an email, but that's future me's problem.
+
+def getrandEID():
+    maxEID = int(getmaxEID())
+    
+    return str(random.randint(0,maxEID))
 
 def main():
-    if not os.path.exists("../DB/emails.db"):
-        conn = sqlite3.connect('../DB/emails.db')
-        c = conn.cursor()
-        c.execute("CREATE TABLE EMAILS (EID INT, USER TINYTEXT, BODY LONGTEXT, DIFFICULTY FLOAT, words LONGTEXT)")
-        c.execute("CREATE TABLE PLAYERS (UID INT, USERNAME TINYTEXT, wordsCORES LONGTEXT)")
-        c.execute("CREATE TABLE words (COMB TINYTEXT, TYPED BIGINT, TYPEDCORRECT BIGINT, DIFFICULTY FLOAT, BESTEMAILS LONGTEXT)")
-        conn.commit()
-    else:
-        conn = sqlite3.connect('../DB/emails.db')
-        c = conn.cursor()
-
-    emails = "../Emails/"
-    emaildirc = os.listdir(emails)
-
-    try:
-        maxEID = getmaxEID() + 1
-    except:
-        maxEID = 1
+    maxEID = getmaxEID()
 
     toexec = []
-
+    emails = "../Emails/"
+    emaildirc = os.listdir(emails)
+    
     for email in emaildirc:
         cleanmail = clean(emails + email)
         # this is new - we're going to print every single email out as we go to check if it violates privacy
@@ -228,20 +215,15 @@ def main():
 
     #print(toexec)
 
-    #this is the sloppy way we add it to DynamoDB and sqlite for now.
-    #sqlite currently serves to give the EID, but that's gonna have to
-    #change eventually.
+    #this is the sloppy way we add it to DynamoDB for now.
     for command in toexec:
         print(command)
         try:
             t = [command[0],command[1]]
             DDB_f = {'mcw':find_mcw(command[1]),'EID':command[0],'body':command[1]}
             put_stuff_in_DB(DDB_f) # this sorta makes sense. I'll re-evaluate maybe.
-            c.execute('INSERT INTO EMAILS VALUES (?, NULL, ?, NULL, NULL)', t)
         except Exception as e:
             print(str(e))
-
-    conn.commit()
     
 if __name__ == "__main__":
     main()

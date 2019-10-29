@@ -124,33 +124,12 @@ def getrandemail(db="../DB/emails.db"):
     '''Gets a random email from the database and returns a tuple of
     the EID and the body text of the email.
 
-    :param db: The sqlite3 database to connect to.
-
     :returns: A tuple of the EID and the body of the email.
 
     >>> getrandemail()
     (1234,"Hey Bob, nice meeting.")
     '''
-    try:
-        conn = sqlite3.connect(db)
-        c = conn.cursor()
-
-        findMax = "SELECT MAX(EID) FROM EMAILS"
-        c.execute(findMax)
-
-        t = c.fetchone()[0]
-        maxEID = int(t)
-
-        EID = random.randint(1,maxEID)
-
-        c.execute('SELECT BODY FROM EMAILS WHERE EID=?;', (EID,))
-
-        body = c.fetchone()[0]
-
-        return (EID,body)
-    except Exception as e:
-        print(str(e))
-        sys.exit()
+    return evaluateemail.fetch("_random")
 
 def score(ttime,tmistakes,tchars):
     '''Processes the total time, total mistakes, and total characters into
