@@ -62,7 +62,7 @@ def put_stuff_in_DB(stuff):
     
     #region = input("What region is the DynamoDB in? ")
     #endpoint = input("What is the endpoint-url? ")
-    table = 'enron1'
+    table = 'enron2'
     
     dynamodb = boto3.resource('dynamodb')
 
@@ -128,7 +128,7 @@ def fetch(word):
     I may make it look for that word again, but it is possible
     that there are words that occur in only one email.'''
     dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('enron1')
+    table = dynamodb.Table('enron2')
     rando = getrandEID() # this is gonna be a problem if the site gets a lot of use.
     if word != "_random":
         try:
@@ -177,7 +177,7 @@ def clean(email):
 def getmaxEID():
     dynamodb = boto3.resource('dynamodb')
 
-    table = dynamodb.Table('enron1')
+    table = dynamodb.Table('enron2')
     return table.item_count # this works since EID is determined by the count of the
     # emails. Won't work if I ever remove an email, but that's future me's problem.
 
